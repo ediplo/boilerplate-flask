@@ -1,31 +1,25 @@
 import time
+import os
 
-import redis
 from flask import Flask, jsonify
+from elasticapm.contrib.flask import ElasticAPM
 
 app = Flask(__name__)
-cache = redis.Redis(host='redis', port=6379)
 
-def get_hit_count():
-    retries = 5
-    while True:
-        try:
-            return cache.incr('hits')
-        except redis.exceptions.ConnectionError as exc:
-            if retries == 0:
-                raise exc
-            retries -= 1
-            time.sleep(0.5)
+app.config['ELASTIC_APM'] = {
+    'DEBUG': True,
+    'SERVER_URL': os.getenv("ELASTIC_APM_SERVER_URL"),
+    'SERVICE_NAME': os.getenv("ELASTIC_APM_SERVICE_NAME"),
+    'ENVIRONMENT': os.getenv("ELASTIC_APM_ENVIRONMENT"),
+    'SECRET_TOKEN': os.getenv("ELASTIC_APM_SECRET_TOKEN"),
+}
 
-@app.route('/')
-def hello():
-    count = get_hit_count()
-    return 'Hello World! I have been seen {} times.\n'.format(count)
+apm = ElasticAPM(app)
 
-@app.route('/darling')
+@app.route('/foo')
 def darling():
     darling_data: dict = {
-        "oh": "darling",
-        "please": "believe me"
+        "foo": "bar",
     }
+    1/0
     return jsonify(darling_data)
